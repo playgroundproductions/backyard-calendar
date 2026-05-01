@@ -88,7 +88,6 @@
     font-size: 11px; padding: 3px 8px; border-radius: 999px;
     background: #1f2d4f; color: var(--accent-2); border: 1px solid #34507a;
   }
-  /* Legend / Rubric */
   .rubric {
     margin-top: 14px;
     display: flex; flex-wrap: wrap; gap: 8px;
@@ -117,7 +116,6 @@
 
   main { padding: 18px 28px 60px; }
 
-  /* MONTH VIEW */
   .month-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -343,7 +341,6 @@
     flex-shrink: 0;
   }
 
-  /* YEAR VIEW */
   .year-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -378,7 +375,6 @@
     width: 3px; height: 3px; border-radius: 50%;
   }
 
-  /* WEEK VIEW */
   .week-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -399,7 +395,6 @@
   .wd-events { display: flex; flex-direction: column; gap: 6px; flex: 1; }
   .wd-events .event { font-size: 13px; padding: 6px 8px; }
 
-  /* MODAL */
   .modal-bg {
     position: fixed; inset: 0;
     background: rgba(8,12,22,.7);
@@ -444,9 +439,51 @@
     .day { min-height: 90px; }
     .week-day { min-height: 200px; }
   }
+
+  /* Password gate */
+  #authGate {
+    position: fixed; inset: 0;
+    background: linear-gradient(180deg, #0b1220 0%, #0f1724 100%);
+    display: none; align-items: center; justify-content: center;
+    z-index: 1000;
+  }
+  #authGate.show { display: flex; }
+  #authBox {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 32px;
+    width: 360px; max-width: 90vw; box-shadow: var(--shadow);
+    text-align: center;
+  }
+  #authBox h2 { margin: 0 0 8px; font-size: 20px; }
+  #authBox p { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  #authInput {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--line);
+    color: var(--text); padding: 10px 12px; border-radius: 8px;
+    font-size: 14px; outline: none; margin-bottom: 12px;
+  }
+  #authInput:focus { border-color: var(--accent); }
+  #authBtn {
+    width: 100%;
+    background: linear-gradient(135deg, #5b8cff, #4f7cf3);
+    border: 1px solid #4f7cf3; color: #fff;
+    padding: 10px; border-radius: 8px; font-size: 14px;
+    font-weight: 600; cursor: pointer;
+  }
+  #authError { color: #fda4af; font-size: 12px; margin-top: 10px; min-height: 16px; }
 </style>
 </head>
 <body>
+
+<div id="authGate">
+  <div id="authBox">
+    <h2>Backyard Sports</h2>
+    <p>Enter password to access the calendar</p>
+    <input type="password" id="authInput" placeholder="Password" autofocus />
+    <button id="authBtn">Enter</button>
+    <div id="authError"></div>
+  </div>
+</div>
+
 <header class="app">
   <div class="app-row">
     <div class="brand">
@@ -480,7 +517,6 @@
 
 <main id="calendarRoot"></main>
 
-<!-- Event modal -->
 <div class="modal-bg" id="eventModal">
   <div class="modal">
     <h3 id="eventModalTitle">Add Event</h3>
@@ -508,7 +544,6 @@
   </div>
 </div>
 
-<!-- Categories modal -->
 <div class="modal-bg" id="catModal">
   <div class="modal" style="width:480px">
     <h3>Manage Categories</h3>
@@ -534,25 +569,49 @@
 </div>
 
 <script>
-/* ============================================
-   Backyard Sports Content Calendar
-   Single-file app, persists to localStorage
-============================================ */
+/* ============== PASSWORD GATE ============== */
+const AUTH_PASSWORD = 'Kawaguchi';
+const AUTH_KEY = 'bys-cal-auth-v1';
+
+(function authCheck() {
+  if (localStorage.getItem(AUTH_KEY) === 'ok') return;
+  const gate = document.getElementById('authGate');
+  const input = document.getElementById('authInput');
+  const btn = document.getElementById('authBtn');
+  const err = document.getElementById('authError');
+  gate.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  const tryAuth = () => {
+    if (input.value === AUTH_PASSWORD) {
+      localStorage.setItem(AUTH_KEY, 'ok');
+      gate.classList.remove('show');
+      document.body.style.overflow = '';
+      err.textContent = '';
+    } else {
+      err.textContent = 'Incorrect password';
+      input.value = '';
+      input.focus();
+    }
+  };
+  btn.addEventListener('click', tryAuth);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryAuth(); });
+  setTimeout(() => input.focus(), 50);
+})();
 
 const STORAGE_KEY = 'bys-cal-v1';
 
 const DEFAULT_CATEGORIES = [
-  { id: 'cheatcode',  name: 'CheatCode',  color: '#e53935' }, // red
-  { id: 'barstool',   name: 'Barstool',   color: '#1e88e5' }, // blue
-  { id: 'influencer', name: 'Influencer', color: '#43a047' }, // green
-  { id: 'internal',   name: 'Internal',   color: '#fdd835' }, // yellow
-  { id: 'press',      name: 'Press',      color: '#8e24aa' }, // purple
-  { id: 'product',    name: 'Product',    color: '#fb8c00' }, // orange
+  { id: 'cheatcode',  name: 'CheatCode',  color: '#e53935' },
+  { id: 'barstool',   name: 'Barstool',   color: '#1e88e5' },
+  { id: 'influencer', name: 'Influencer', color: '#43a047' },
+  { id: 'internal',   name: 'Internal',   color: '#fdd835' },
+  { id: 'press',      name: 'Press',      color: '#8e24aa' },
+  { id: 'product',    name: 'Product',    color: '#fb8c00' },
 ];
 
 let state = loadState();
 let view = 'month';
-let cursor = new Date(); // anchor date for current view
+let cursor = new Date();
 cursor.setHours(0,0,0,0);
 let draggedEventId = null;
 
@@ -566,7 +625,7 @@ function loadState() {
   } catch(e) {}
   return {
     categories: DEFAULT_CATEGORIES.slice(),
-    events: [] // { id, title, date: 'YYYY-MM-DD', categoryId }
+    events: []
   };
 }
 function saveState() {
@@ -576,11 +635,7 @@ function uid() { return Math.random().toString(36).slice(2,10); }
 
 /* ============================================
    GOOGLE SHEETS BACKEND
-   To enable shared sync across your team:
-   1. Set up the Google Sheet + Apps Script (see setup-instructions.md)
-   2. Paste your Apps Script web app URL between the quotes below
-   3. Re-deploy this file to Vercel
-   Leave blank to use local-only (single browser) mode.
+   Paste your Apps Script web app URL between the quotes below.
 ============================================ */
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyLSwvcxnZALlJ7ANuvNqlkqMniQ-NbAjg5982AI9A0qpODdY_n8Z4qOCf9ncza0CWI2A/exec';
 
@@ -624,7 +679,6 @@ function setSyncStatus(status) {
              status === 'ok' ? 'Synced — click to refresh' : 'Refresh';
 }
 
-// Mutation wrappers — keep local state authoritative, push to cloud
 function syncAddEvent(ev)         { saveState(); api.send('addEvent', { event: ev }); }
 function syncUpdateEvent(ev)      { saveState(); api.send('updateEvent', { event: ev }); }
 function syncDeleteEvent(id)      { saveState(); api.send('deleteEvent', { id }); }
@@ -665,7 +719,6 @@ function eventsOn(date) {
     .sort((a,b) => a.title.localeCompare(b.title));
 }
 
-/* ============== RENDER ============== */
 function render() {
   renderRubric();
   renderHeader();
@@ -877,7 +930,6 @@ function escapeHtml(s) {
   }[m]));
 }
 
-/* ============== INTERACTIONS ============== */
 function attachDayHandlers() {
   document.querySelectorAll('[data-add]').forEach(el => {
     el.addEventListener('click', (e) => {
@@ -929,7 +981,6 @@ function attachDayHandlers() {
       startUrlEdit(btn.dataset.urlEdit);
     });
   });
-  // Drag and drop: drag events onto day cells to reschedule
   document.querySelectorAll('.event .ev-row').forEach(row => {
     row.addEventListener('dragstart', (e) => {
       const ev = row.closest('.event');
@@ -974,7 +1025,6 @@ function attachDayHandlers() {
 function showInlineAdd(dateStr) {
   const container = document.getElementById('events-' + dateStr);
   if (!container) return;
-  // remove any open inline form first
   document.querySelectorAll('.inline-form').forEach(f => f.remove());
 
   const form = document.createElement('div');
@@ -1022,7 +1072,6 @@ function showInlineAdd(dateStr) {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit();
     else if (e.key === 'Escape') form.remove();
   });
-  // click outside cancels
   setTimeout(() => {
     const off = (ev) => {
       if (!form.contains(ev.target)) {
@@ -1066,7 +1115,6 @@ function deleteEvent(id) {
   render();
 }
 
-/* ============== EVENT MODAL ============== */
 let editingId = null;
 function openEventModal(id) {
   editingId = id || null;
@@ -1137,7 +1185,6 @@ document.getElementById('evDeleteBtn').addEventListener('click', () => {
   render();
 });
 
-/* ============== CATEGORIES MODAL ============== */
 function openCatModal() {
   renderCatList();
   document.getElementById('catModal').classList.add('open');
@@ -1207,7 +1254,6 @@ document.getElementById('addCatBtn').addEventListener('click', () => {
   render();
 });
 
-/* ============== NAV ============== */
 document.getElementById('viewSeg').addEventListener('click', (e) => {
   const v = e.target.dataset.view;
   if (v) { view = v; render(); }
@@ -1229,14 +1275,12 @@ document.getElementById('todayBtn').addEventListener('click', () => {
   render();
 });
 
-// click-out closes modals
 document.querySelectorAll('.modal-bg').forEach(bg => {
   bg.addEventListener('click', (e) => {
     if (e.target === bg) bg.classList.remove('open');
   });
 });
 
-// Sync status / refresh button
 const syncBtn = document.getElementById('syncStatus');
 if (api.enabled()) {
   syncBtn.style.display = '';
@@ -1257,7 +1301,7 @@ async function init() {
   render();
   if (api.enabled()) {
     await refreshFromCloud();
-    setInterval(refreshFromCloud, 60000); // refresh once a minute
+    setInterval(refreshFromCloud, 60000);
   }
 }
 init();
