@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Backyard Sports — Content Calendar</title>
+<style>
+  :root {
+    --bg: #0f1724;
+    --panel: #16213a;
+    --panel-2: #1e2d4f;
+    --line: #2a3a5e;
+    --text: #e8ecf4;
+    --muted: #94a3b8;
+    --accent: #5b8cff;
+    --accent-2: #7aa2ff;
+    --danger: #ef4444;
+    --shadow: 0 6px 24px rgba(0,0,0,.25);
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, #0b1220 0%, #0f1724 100%);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  header.app {
+    padding: 18px 28px 12px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(15,23,36,.85);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .app-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, #5b8cff, #22d3ee);
+    display: grid; place-items: center; font-weight: 800; color: #0b1220;
+    box-shadow: var(--shadow);
+  }
+  .brand-title { font-size: 18px; font-weight: 700; letter-spacing: .2px; }
+  .brand-sub { font-size: 12px; color: var(--muted); }
+  .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .nav { display: flex; align-items: center; gap: 6px; }
+  .btn {
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--line);
+    padding: 8px 12px; border-radius: 10px;
+    font-size: 13px; cursor: pointer;
+    transition: background .15s ease, transform .05s ease, border-color .15s ease;
+  }
+  .btn:hover { background: #25365e; border-color: #3a4d77; }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary {
+    background: linear-gradient(135deg, #5b8cff, #4f7cf3);
+    border: 1px solid #4f7cf3;
+  }
+  .btn.primary:hover { filter: brightness(1.07); }
+  .btn.danger { background: #2a1a1f; border-color: #5a2a36; color: #fda4af; }
+  .btn.danger:hover { background: #3a1f29; }
+  .btn.ghost { background: transparent; }
+  .seg {
+    display: inline-flex; padding: 3px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  }
+  .seg button {
+    background: transparent; color: var(--muted);
+    border: 0; padding: 7px 12px; font-size: 13px;
+    border-radius: 9px; cursor: pointer;
+  }
+  .seg button.active { background: var(--accent); color: #0b1220; font-weight: 600; }
+  #syncStatus[data-status="syncing"] { color: #fde68a; animation: spin 1s linear infinite; }
+  #syncStatus[data-status="ok"] { color: #86efac; }
+  #syncStatus[data-status="error"] { color: #fda4af; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .title-row {
+    display: flex; align-items: baseline; gap: 14px; margin-top: 10px;
+  }
+  .title { font-size: 22px; font-weight: 700; }
+  .today-pill {
+    font-size: 11px; padding: 3px 8px; border-radius: 999px;
+    background: #1f2d4f; color: var(--accent-2); border: 1px solid #34507a;
+  }
+  /* Legend / Rubric */
+  .rubric {
+    margin-top: 14px;
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--line);
+    font-size: 12px; color: var(--text);
+  }
+  .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+    flex-shrink: 0;
+  }
+  .chip .x {
+    margin-left: 4px; cursor: pointer; color: var(--muted);
+    font-size: 14px; line-height: 1;
+  }
+  .chip .x:hover { color: #fda4af; }
+  .chip .edit {
+    margin-left: 2px; cursor: pointer; color: var(--muted);
+    font-size: 12px;
+  }
+  .chip .edit:hover { color: var(--accent-2); }
+
+  main { padding: 18px 28px 60px; }
+
+  /* MONTH VIEW */
+  .month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  .dow {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--muted); padding: 6px 8px;
+  }
+  .day {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    min-height: 130px;
+    padding: 8px;
+    display: flex; flex-direction: column; gap: 6px;
+    transition: border-color .15s ease, background .15s ease;
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .day:hover { border-color: #3a4d77; }
+  .day.other { opacity: .42; }
+  .day.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .day-head { display: flex; align-items: center; justify-content: space-between; }
+  .day-num { font-weight: 600; font-size: 13px; }
+  .day-add {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: transparent; color: var(--muted);
+    border: 1px dashed var(--line); cursor: pointer;
+    font-size: 14px; line-height: 1;
+    opacity: 0; transition: opacity .15s ease;
+  }
+  .day:hover .day-add { opacity: 1; }
+  .day-add:hover { color: var(--accent-2); border-color: var(--accent); }
+  .events { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .event {
+    border-radius: 6px;
+    font-size: 12px;
+    transition: filter .15s ease;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .event:hover { filter: brightness(1.15); }
+  .ev-row {
+    display: flex; align-items: flex-start; gap: 6px;
+    padding: 5px 7px;
+    cursor: grab;
+    min-width: 0;
+    user-select: none;
+  }
+  .ev-row:active { cursor: grabbing; }
+  .event.dragging { opacity: 0.35; }
+  .day.drop-target, .week-day.drop-target {
+    background: rgba(91,140,255,.18) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 2px var(--accent) inset;
+  }
+  .event .ev-text {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .event .ev-title {
+    font-weight: 700;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+  }
+  .event .ev-meta {
+    display: flex; align-items: center; gap: 5px;
+    font-weight: 400;
+    font-size: 11px;
+    opacity: .9;
+  }
+  .event .ev-cat { font-weight: 400; }
+  .event .ev-dot {
+    width: 10px; height: 10px;
+    flex-shrink: 0;
+  }
+  .event .ev-caret {
+    color: rgba(255,255,255,.55); font-size: 10px; line-height: 1.5;
+    transition: transform .15s ease;
+    flex-shrink: 0;
+  }
+  .event.expanded .ev-caret { transform: rotate(90deg); }
+  .event .ev-actions {
+    display: flex; gap: 2px; align-items: center;
+    flex-shrink: 0;
+  }
+  .event .ev-edit, .event .ev-del {
+    color: rgba(255,255,255,.55); cursor: pointer;
+    font-size: 12px; line-height: 1; padding: 0 3px;
+    opacity: 0; transition: opacity .15s ease, color .15s ease;
+    background: transparent; border: 0;
+  }
+  .event:hover .ev-edit, .event:hover .ev-del { opacity: 1; }
+  .event .ev-edit:hover { color: #fff; }
+  .event .ev-del:hover { color: #fda4af; }
+  .event .ev-desc {
+    display: none;
+    margin: 2px 7px 7px 7px;
+    padding: 6px 8px;
+    font-size: 11px;
+    font-family: inherit;
+    color: rgba(255,255,255,.92);
+    background: rgba(0,0,0,.18);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 5px;
+    line-height: 1.4;
+    width: calc(100% - 14px);
+    resize: none;
+    min-height: 50px;
+    outline: none;
+    overflow: hidden;
+    transition: border-color .15s ease, background .15s ease;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .event.expanded .ev-desc { display: block; }
+  .event .ev-desc:hover { border-color: rgba(255,255,255,.3); }
+  .event .ev-desc:focus {
+    border-color: rgba(255,255,255,.6);
+    background: rgba(0,0,0,.28);
+  }
+  .event .ev-desc::placeholder { color: rgba(255,255,255,.45); font-style: italic; }
+  .event .ev-url-row {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin: 0 7px 7px 7px;
+    padding: 4px 8px;
+    font-size: 11px;
+    background: rgba(0,0,0,.18);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 5px;
+    min-width: 0;
+  }
+  .event.expanded .ev-url-row { display: flex; }
+  .event .ev-url-icon { flex-shrink: 0; font-size: 11px; opacity: .8; }
+  .event .ev-url-link {
+    flex: 1; min-width: 0;
+    color: #93c5fd;
+    text-decoration: underline;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .event .ev-url-link:hover { color: #bfdbfe; }
+  .event .ev-url-edit, .event .ev-url-add {
+    background: transparent;
+    border: 0;
+    color: rgba(255,255,255,.6);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    flex-shrink: 0;
+  }
+  .event .ev-url-edit:hover, .event .ev-url-add:hover { color: #fff; }
+  .event .ev-url-add {
+    color: rgba(255,255,255,.55);
+    font-style: italic;
+    text-align: left;
+    flex: 1;
+  }
+  .event .ev-url-input {
+    flex: 1; min-width: 0;
+    background: rgba(0,0,0,.3);
+    border: 1px solid rgba(255,255,255,.4);
+    color: var(--text);
+    padding: 3px 6px;
+    font-size: 11px;
+    border-radius: 4px;
+    outline: none;
+    font-family: inherit;
+  }
+  .event .ev-url-input:focus { border-color: var(--accent); }
+
+  .inline-form {
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--panel-2); border: 1px solid var(--accent);
+    border-radius: 6px; padding: 5px;
+  }
+  .inline-form input[type=text] {
+    width: 100%; min-width: 0;
+    background: var(--panel); border: 1px solid var(--line); outline: none;
+    color: var(--text); font-size: 12px; padding: 4px 6px;
+    border-radius: 4px;
+  }
+  .inline-form input[type=text]:focus { border-color: var(--accent); }
+  .inline-form textarea.if-desc {
+    width: 100%;
+    background: var(--panel); border: 1px solid var(--line); outline: none;
+    color: var(--text); font-size: 11px; padding: 4px 6px;
+    border-radius: 4px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 36px;
+  }
+  .inline-form textarea.if-desc:focus { border-color: var(--accent); }
+  .inline-form input.if-url {
+    width: 100%; min-width: 0;
+    background: var(--panel); border: 1px solid var(--line); outline: none;
+    color: var(--text); font-size: 11px; padding: 4px 6px;
+    border-radius: 4px;
+  }
+  .inline-form input.if-url:focus { border-color: var(--accent); }
+  .inline-form .if-row {
+    display: flex; gap: 4px; align-items: center;
+  }
+  .inline-form select {
+    flex: 1; min-width: 0;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--line); border-radius: 4px;
+    font-size: 11px; padding: 3px 4px; outline: none;
+  }
+  .inline-form button {
+    background: var(--accent); color: #0b1220;
+    border: 0; border-radius: 4px;
+    padding: 4px 8px; font-size: 11px; cursor: pointer;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* YEAR VIEW */
+  .year-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .mini-month {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px;
+    cursor: pointer;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .mini-month:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .mini-title { font-weight: 700; margin-bottom: 8px; font-size: 14px; }
+  .mini-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+    font-size: 11px;
+  }
+  .mini-dow { color: var(--muted); text-align: center; padding: 2px 0; font-size: 10px; }
+  .mini-day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; position: relative; color: var(--text);
+  }
+  .mini-day.other { color: #4a5876; }
+  .mini-day.today { background: var(--accent); color: #0b1220; font-weight: 700; }
+  .mini-day .mini-dots {
+    position: absolute; bottom: 1px; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 1px;
+  }
+  .mini-day .mini-dot {
+    width: 3px; height: 3px; border-radius: 50%;
+  }
+
+  /* WEEK VIEW */
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  .week-day {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px;
+    min-height: 380px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .week-day.today { border-color: var(--accent); }
+  .wd-head { display: flex; flex-direction: column; gap: 2px; }
+  .wd-name { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .wd-num { font-size: 22px; font-weight: 700; }
+  .wd-events { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .wd-events .event { font-size: 13px; padding: 6px 8px; }
+
+  /* MODAL */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(8,12,22,.7);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    width: 420px; max-width: 92vw;
+    box-shadow: var(--shadow);
+  }
+  .modal h3 { margin: 0 0 14px; font-size: 17px; }
+  .modal label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; margin-top: 10px; }
+  .modal input[type=text], .modal input[type=date], .modal select, .modal input[type=color], .modal textarea {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 9px 10px; border-radius: 8px;
+    font-size: 13px; outline: none;
+    font-family: inherit;
+  }
+  .modal textarea { resize: vertical; min-height: 80px; }
+  .modal input[type=color] { padding: 4px; height: 38px; cursor: pointer; }
+  .modal .row { display: flex; gap: 10px; }
+  .modal .row > * { flex: 1; }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+  .empty-hint {
+    color: var(--muted); font-size: 11px; font-style: italic;
+  }
+
+  @media (max-width: 720px) {
+    main { padding: 14px; }
+    header.app { padding: 14px; }
+    .day { min-height: 90px; }
+    .week-day { min-height: 200px; }
+  }
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="app-row">
+    <div class="brand">
+      <div class="brand-mark">B</div>
+      <div>
+        <div class="brand-title">Backyard Sports</div>
+        <div class="brand-sub">Content Calendar</div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="seg" id="viewSeg">
+        <button data-view="year">Year</button>
+        <button data-view="month" class="active">Month</button>
+        <button data-view="week">Week</button>
+      </div>
+      <div class="nav">
+        <button class="btn" id="prevBtn">‹</button>
+        <button class="btn" id="todayBtn">Today</button>
+        <button class="btn" id="nextBtn">›</button>
+      </div>
+      <button class="btn primary" id="addEventBtn">+ Add Event</button>
+      <button class="btn" id="manageCatsBtn">Manage Categories</button>
+      <button class="btn" id="syncStatus" data-status="idle" title="Refresh" style="display:none">⟳</button>
+    </div>
+  </div>
+  <div class="title-row">
+    <div class="title" id="periodTitle">—</div>
+  </div>
+  <div class="rubric" id="rubric"></div>
+</header>
+
+<main id="calendarRoot"></main>
+
+<!-- Event modal -->
+<div class="modal-bg" id="eventModal">
+  <div class="modal">
+    <h3 id="eventModalTitle">Add Event</h3>
+    <label>Title</label>
+    <input type="text" id="evTitle" placeholder="e.g. Daily Post" />
+    <div class="row">
+      <div>
+        <label>Date</label>
+        <input type="date" id="evDate" />
+      </div>
+      <div>
+        <label>Category</label>
+        <select id="evCategory"></select>
+      </div>
+    </div>
+    <label>Description (optional)</label>
+    <textarea id="evDescription" placeholder="Add notes or details about this event…"></textarea>
+    <label>URL (optional)</label>
+    <input type="text" id="evUrl" placeholder="https://…" />
+    <div class="actions">
+      <button class="btn danger" id="evDeleteBtn" style="display:none">Delete</button>
+      <button class="btn ghost" id="evCancelBtn">Cancel</button>
+      <button class="btn primary" id="evSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Categories modal -->
+<div class="modal-bg" id="catModal">
+  <div class="modal" style="width:480px">
+    <h3>Manage Categories</h3>
+    <div id="catList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+    <div style="border-top:1px solid var(--line);padding-top:14px">
+      <label>Add new category</label>
+      <div class="row" style="align-items:end">
+        <div>
+          <input type="text" id="newCatName" placeholder="Category name" />
+        </div>
+        <div style="flex:0 0 70px">
+          <input type="color" id="newCatColor" value="#5b8cff" />
+        </div>
+        <div style="flex:0 0 auto">
+          <button class="btn primary" id="addCatBtn">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="catCloseBtn">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================
+   Backyard Sports Content Calendar
+   Single-file app, persists to localStorage
+============================================ */
+
+const STORAGE_KEY = 'bys-cal-v1';
+
+const DEFAULT_CATEGORIES = [
+  { id: 'cheatcode',  name: 'CheatCode',  color: '#e53935' }, // red
+  { id: 'barstool',   name: 'Barstool',   color: '#1e88e5' }, // blue
+  { id: 'influencer', name: 'Influencer', color: '#43a047' }, // green
+  { id: 'internal',   name: 'Internal',   color: '#fdd835' }, // yellow
+  { id: 'press',      name: 'Press',      color: '#8e24aa' }, // purple
+  { id: 'product',    name: 'Product',    color: '#fb8c00' }, // orange
+];
+
+let state = loadState();
+let view = 'month';
+let cursor = new Date(); // anchor date for current view
+cursor.setHours(0,0,0,0);
+let draggedEventId = null;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s.categories && s.events) return s;
+    }
+  } catch(e) {}
+  return {
+    categories: DEFAULT_CATEGORIES.slice(),
+    events: [] // { id, title, date: 'YYYY-MM-DD', categoryId }
+  };
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function uid() { return Math.random().toString(36).slice(2,10); }
+
+/* ============================================
+   GOOGLE SHEETS BACKEND
+   To enable shared sync across your team:
+   1. Set up the Google Sheet + Apps Script (see setup-instructions.md)
+   2. Paste your Apps Script web app URL between the quotes below
+   3. Re-deploy this file to Vercel
+   Leave blank to use local-only (single browser) mode.
+============================================ */
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwJYaVQ-2zajH1ORinjyYDUg5mgllqg0EY8se-7-nRhURxXmyzGEboQeXIgbrIdFpY95g/exec';
+
+const debounceTimers = {};
+const api = {
+  enabled: () => Boolean(BACKEND_URL),
+  async load() {
+    if (!this.enabled()) return null;
+    setSyncStatus('syncing');
+    try {
+      const r = await fetch(BACKEND_URL, { method: 'GET' });
+      const data = await r.json();
+      setSyncStatus('ok');
+      return data;
+    } catch (e) {
+      console.error('Cloud load failed:', e);
+      setSyncStatus('error');
+      return null;
+    }
+  },
+  send(action, payload) {
+    if (!this.enabled()) return;
+    setSyncStatus('syncing');
+    fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, ...payload })
+    }).then(() => setSyncStatus('ok'))
+      .catch((e) => { console.error('Cloud sync failed:', e); setSyncStatus('error'); });
+  }
+};
+
+function setSyncStatus(status) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.dataset.status = status;
+  const labels = { idle: '⟳', syncing: '⟳', ok: '✓', error: '⚠' };
+  el.textContent = labels[status] || '⟳';
+  el.title = status === 'error' ? 'Sync failed — click to retry' :
+             status === 'syncing' ? 'Syncing…' :
+             status === 'ok' ? 'Synced — click to refresh' : 'Refresh';
+}
+
+// Mutation wrappers — keep local state authoritative, push to cloud
+function syncAddEvent(ev)         { saveState(); api.send('addEvent', { event: ev }); }
+function syncUpdateEvent(ev)      { saveState(); api.send('updateEvent', { event: ev }); }
+function syncDeleteEvent(id)      { saveState(); api.send('deleteEvent', { id }); }
+function syncUpdateEventDebounced(ev) {
+  saveState();
+  if (debounceTimers[ev.id]) clearTimeout(debounceTimers[ev.id]);
+  debounceTimers[ev.id] = setTimeout(() => api.send('updateEvent', { event: ev }), 800);
+}
+function syncAddCategory(c)       { saveState(); api.send('addCategory', { category: c }); }
+function syncUpdateCategory(c)    { saveState(); api.send('updateCategory', { category: c }); }
+function syncDeleteCategory(id, fb) { saveState(); api.send('deleteCategory', { id, fallbackId: fb }); }
+
+function fmtDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const da = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${da}`;
+}
+function parseDate(s) {
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function sameDay(a,b) {
+  return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+}
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOWS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DOWS_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function getCategory(id) {
+  return state.categories.find(c => c.id === id) || state.categories[0];
+}
+
+function eventsOn(date) {
+  const ds = fmtDate(date);
+  return state.events
+    .filter(e => e.date === ds)
+    .sort((a,b) => a.title.localeCompare(b.title));
+}
+
+/* ============== RENDER ============== */
+function render() {
+  renderRubric();
+  renderHeader();
+  if (view === 'year') renderYear();
+  else if (view === 'week') renderWeek();
+  else renderMonth();
+  document.querySelectorAll('#viewSeg button').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+}
+
+function renderRubric() {
+  const el = document.getElementById('rubric');
+  el.innerHTML = '';
+  state.categories.forEach(cat => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `
+      <span class="dot" style="background:${cat.color}"></span>
+      <span>${escapeHtml(cat.name)}</span>
+    `;
+    el.appendChild(chip);
+  });
+}
+
+function renderHeader() {
+  const t = document.getElementById('periodTitle');
+  if (view === 'year') {
+    t.textContent = cursor.getFullYear();
+  } else if (view === 'week') {
+    const start = startOfWeek(cursor);
+    const end = new Date(start); end.setDate(end.getDate()+6);
+    const sm = MONTHS[start.getMonth()].slice(0,3);
+    const em = MONTHS[end.getMonth()].slice(0,3);
+    t.textContent = `${sm} ${start.getDate()} – ${em} ${end.getDate()}, ${end.getFullYear()}`;
+  } else {
+    t.textContent = `${MONTHS[cursor.getMonth()]} ${cursor.getFullYear()}`;
+  }
+}
+
+function startOfWeek(d) {
+  const x = new Date(d);
+  x.setDate(x.getDate() - x.getDay());
+  x.setHours(0,0,0,0);
+  return x;
+}
+
+function renderMonth() {
+  const root = document.getElementById('calendarRoot');
+  const year = cursor.getFullYear();
+  const month = cursor.getMonth();
+  const first = new Date(year, month, 1);
+  const startDay = first.getDay();
+  const gridStart = new Date(first); gridStart.setDate(1 - startDay);
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let html = '<div class="month-grid">';
+  DOWS.forEach(d => html += `<div class="dow">${d}</div>`);
+
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(gridStart); d.setDate(gridStart.getDate()+i);
+    const inMonth = d.getMonth() === month;
+    const isToday = sameDay(d, today);
+    const evs = eventsOn(d);
+    html += `<div class="day ${inMonth?'':'other'} ${isToday?'today':''}" data-date="${fmtDate(d)}">
+      <div class="day-head">
+        <span class="day-num">${d.getDate()}</span>
+        <button class="day-add" title="Add event" data-add="${fmtDate(d)}">+</button>
+      </div>
+      <div class="events" id="events-${fmtDate(d)}">
+        ${evs.map(renderEventHtml).join('')}
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+  root.innerHTML = html;
+  attachDayHandlers();
+}
+
+function renderYear() {
+  const root = document.getElementById('calendarRoot');
+  const year = cursor.getFullYear();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let html = '<div class="year-grid">';
+  for (let m = 0; m < 12; m++) {
+    const first = new Date(year, m, 1);
+    const startDay = first.getDay();
+    const gridStart = new Date(first); gridStart.setDate(1 - startDay);
+    let mini = `<div class="mini-month" data-jump-month="${m}">
+      <div class="mini-title">${MONTHS[m]}</div>
+      <div class="mini-grid">`;
+    DOWS.forEach(d => mini += `<div class="mini-dow">${d[0]}</div>`);
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(gridStart); d.setDate(gridStart.getDate()+i);
+      const inMonth = d.getMonth() === m;
+      const isToday = sameDay(d, today);
+      const evs = eventsOn(d);
+      const dotsHtml = evs.slice(0,4).map(e => {
+        const cat = getCategory(e.categoryId);
+        return `<span class="mini-dot" style="background:${cat.color}"></span>`;
+      }).join('');
+      mini += `<div class="mini-day ${inMonth?'':'other'} ${isToday?'today':''}">
+        <span>${d.getDate()}</span>
+        ${dotsHtml ? `<span class="mini-dots">${dotsHtml}</span>` : ''}
+      </div>`;
+    }
+    mini += '</div></div>';
+    html += mini;
+  }
+  html += '</div>';
+  root.innerHTML = html;
+  document.querySelectorAll('[data-jump-month]').forEach(el => {
+    el.addEventListener('click', () => {
+      cursor = new Date(year, parseInt(el.dataset.jumpMonth), 1);
+      view = 'month';
+      render();
+    });
+  });
+}
+
+function renderWeek() {
+  const root = document.getElementById('calendarRoot');
+  const start = startOfWeek(cursor);
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let html = '<div class="week-grid">';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start); d.setDate(start.getDate()+i);
+    const isToday = sameDay(d, today);
+    const evs = eventsOn(d);
+    html += `<div class="week-day ${isToday?'today':''}" data-date="${fmtDate(d)}">
+      <div class="wd-head">
+        <span class="wd-name">${DOWS_FULL[d.getDay()]}</span>
+        <span class="wd-num">${d.getDate()}</span>
+      </div>
+      <div class="wd-events events" id="events-${fmtDate(d)}">
+        ${evs.map(renderEventHtml).join('')}
+        ${evs.length === 0 ? '<div class="empty-hint">No events</div>' : ''}
+      </div>
+      <button class="btn ghost" data-add="${fmtDate(d)}" style="font-size:12px">+ Add</button>
+    </div>`;
+  }
+  html += '</div>';
+  root.innerHTML = html;
+  attachDayHandlers();
+}
+
+function renderEventHtml(e) {
+  const cat = getCategory(e.categoryId);
+  const bg = hexToRgba(cat.color, 0.18);
+  const border = hexToRgba(cat.color, 0.5);
+  const hasDesc = e.description && e.description.trim().length > 0;
+  return `<div class="event" data-event-id="${e.id}" style="background:${bg};border:1px solid ${border}">
+    <div class="ev-row" draggable="true">
+      <div class="ev-text">
+        <div class="ev-title">${escapeHtml(e.title)}</div>
+        <div class="ev-meta">
+          <span class="dot ev-dot" style="background:${cat.color}"></span>
+          <span class="ev-cat">${escapeHtml(cat.name)}</span>
+        </div>
+      </div>
+      <span class="ev-caret">›</span>
+      <span class="ev-actions">
+        <button class="ev-edit" data-edit="${e.id}" title="Edit">✎</button>
+        <button class="ev-del" data-del="${e.id}" title="Delete">×</button>
+      </span>
+    </div>
+    <textarea class="ev-desc" data-desc-id="${e.id}" placeholder="Add a description…">${hasDesc ? escapeHtml(e.description) : ''}</textarea>
+    ${renderUrlSection(e)}
+  </div>`;
+}
+
+function renderUrlSection(e) {
+  const url = (e.url || '').trim();
+  if (url) {
+    const safe = escapeHtml(url);
+    const href = url.match(/^https?:\/\//i) ? safe : 'https://' + safe;
+    return `<div class="ev-url-row" data-event-id="${e.id}">
+      <span class="ev-url-icon">🔗</span>
+      <a class="ev-url-link" href="${href}" target="_blank" rel="noopener noreferrer">${safe}</a>
+      <button class="ev-url-edit" data-url-edit="${e.id}" title="Edit URL">✎</button>
+    </div>`;
+  }
+  return `<div class="ev-url-row empty" data-event-id="${e.id}">
+    <span class="ev-url-icon">🔗</span>
+    <button class="ev-url-add" data-url-edit="${e.id}">Add URL</button>
+  </div>`;
+}
+
+function autoSizeTextarea(ta) {
+  if (!ta) return;
+  ta.style.height = 'auto';
+  ta.style.height = Math.max(50, ta.scrollHeight) + 'px';
+}
+
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#','');
+  const full = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+  const r = parseInt(full.slice(0,2),16);
+  const g = parseInt(full.slice(2,4),16);
+  const b = parseInt(full.slice(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+/* ============== INTERACTIONS ============== */
+function attachDayHandlers() {
+  document.querySelectorAll('[data-add]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showInlineAdd(el.dataset.add);
+    });
+  });
+  document.querySelectorAll('.event .ev-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('[data-edit]') || e.target.closest('[data-del]')) return;
+      const ev = row.closest('.event');
+      ev.classList.toggle('expanded');
+      if (ev.classList.contains('expanded')) {
+        const ta = ev.querySelector('.ev-desc');
+        if (ta) autoSizeTextarea(ta);
+      }
+    });
+  });
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEventModal(el.dataset.edit);
+    });
+  });
+  document.querySelectorAll('[data-del]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteEvent(el.dataset.del);
+    });
+  });
+  document.querySelectorAll('[data-desc-id]').forEach(el => {
+    el.addEventListener('click', (e) => e.stopPropagation());
+    el.addEventListener('input', (e) => {
+      const id = el.dataset.descId;
+      const ev = state.events.find(x => x.id === id);
+      if (ev) {
+        ev.description = el.value;
+        syncUpdateEventDebounced(ev);
+      }
+      autoSizeTextarea(el);
+    });
+  });
+  document.querySelectorAll('.ev-url-link').forEach(a => {
+    a.addEventListener('click', (e) => e.stopPropagation());
+  });
+  document.querySelectorAll('[data-url-edit]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startUrlEdit(btn.dataset.urlEdit);
+    });
+  });
+  // Drag and drop: drag events onto day cells to reschedule
+  document.querySelectorAll('.event .ev-row').forEach(row => {
+    row.addEventListener('dragstart', (e) => {
+      const ev = row.closest('.event');
+      const id = ev.dataset.eventId;
+      draggedEventId = id;
+      ev.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', id); } catch(_) {}
+    });
+    row.addEventListener('dragend', () => {
+      document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+      document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+      draggedEventId = null;
+    });
+  });
+  document.querySelectorAll('[data-date]').forEach(cell => {
+    cell.addEventListener('dragover', (e) => {
+      if (!draggedEventId) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      cell.classList.add('drop-target');
+    });
+    cell.addEventListener('dragleave', (e) => {
+      if (e.target === cell) cell.classList.remove('drop-target');
+    });
+    cell.addEventListener('drop', (e) => {
+      e.preventDefault();
+      cell.classList.remove('drop-target');
+      const id = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || draggedEventId;
+      if (!id) return;
+      const ev = state.events.find(x => x.id === id);
+      if (!ev) return;
+      const newDate = cell.dataset.date;
+      if (!newDate || ev.date === newDate) return;
+      ev.date = newDate;
+      syncUpdateEvent(ev);
+      render();
+    });
+  });
+}
+
+function showInlineAdd(dateStr) {
+  const container = document.getElementById('events-' + dateStr);
+  if (!container) return;
+  // remove any open inline form first
+  document.querySelectorAll('.inline-form').forEach(f => f.remove());
+
+  const form = document.createElement('div');
+  form.className = 'inline-form';
+  const catOpts = state.categories.map(c =>
+    `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  form.innerHTML = `
+    <input type="text" class="if-title" placeholder="New event…" />
+    <textarea class="if-desc" placeholder="Description (optional)…" rows="2"></textarea>
+    <input type="text" class="if-url" placeholder="URL (optional)…" />
+    <div class="if-row">
+      <select>${catOpts}</select>
+      <button>Add</button>
+    </div>
+  `;
+  container.appendChild(form);
+  const input = form.querySelector('.if-title');
+  const desc = form.querySelector('.if-desc');
+  const urlInput = form.querySelector('.if-url');
+  const sel = form.querySelector('select');
+  const btn = form.querySelector('button');
+  input.focus();
+
+  const submit = () => {
+    const title = input.value.trim();
+    if (!title) { form.remove(); return; }
+    const newEv = {
+      id: uid(),
+      title,
+      date: dateStr,
+      categoryId: sel.value,
+      description: desc.value.trim(),
+      url: urlInput.value.trim()
+    };
+    state.events.push(newEv);
+    syncAddEvent(newEv);
+    render();
+  };
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { submit(); }
+    else if (e.key === 'Escape') form.remove();
+  });
+  desc.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit();
+    else if (e.key === 'Escape') form.remove();
+  });
+  // click outside cancels
+  setTimeout(() => {
+    const off = (ev) => {
+      if (!form.contains(ev.target)) {
+        form.remove();
+        document.removeEventListener('mousedown', off);
+      }
+    };
+    document.addEventListener('mousedown', off);
+  }, 0);
+}
+
+function startUrlEdit(id) {
+  const ev = state.events.find(x => x.id === id);
+  if (!ev) return;
+  const row = document.querySelector(`.ev-url-row[data-event-id="${id}"]`);
+  if (!row) return;
+  row.innerHTML = `
+    <span class="ev-url-icon">🔗</span>
+    <input type="text" class="ev-url-input" value="${escapeHtml(ev.url || '')}" placeholder="https://…" />
+  `;
+  const input = row.querySelector('input');
+  input.focus();
+  input.select();
+  input.addEventListener('click', (e) => e.stopPropagation());
+  const finish = () => {
+    ev.url = input.value.trim();
+    syncUpdateEvent(ev);
+    render();
+  };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    else if (e.key === 'Escape') { input.value = ev.url || ''; input.blur(); }
+  });
+}
+
+function deleteEvent(id) {
+  if (!confirm('Delete this event?')) return;
+  state.events = state.events.filter(e => e.id !== id);
+  syncDeleteEvent(id);
+  render();
+}
+
+/* ============== EVENT MODAL ============== */
+let editingId = null;
+function openEventModal(id) {
+  editingId = id || null;
+  const m = document.getElementById('eventModal');
+  const title = document.getElementById('eventModalTitle');
+  const evT = document.getElementById('evTitle');
+  const evD = document.getElementById('evDate');
+  const evC = document.getElementById('evCategory');
+  const evDesc = document.getElementById('evDescription');
+  const evUrl = document.getElementById('evUrl');
+  const delBtn = document.getElementById('evDeleteBtn');
+  evC.innerHTML = state.categories.map(c =>
+    `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  if (id) {
+    const ev = state.events.find(e => e.id === id);
+    title.textContent = 'Edit Event';
+    evT.value = ev.title;
+    evD.value = ev.date;
+    evC.value = ev.categoryId;
+    evDesc.value = ev.description || '';
+    evUrl.value = ev.url || '';
+    delBtn.style.display = '';
+  } else {
+    title.textContent = 'Add Event';
+    evT.value = '';
+    evD.value = fmtDate(cursor);
+    evC.value = state.categories[0].id;
+    evDesc.value = '';
+    evUrl.value = '';
+    delBtn.style.display = 'none';
+  }
+  m.classList.add('open');
+  evT.focus();
+}
+function closeEventModal() {
+  document.getElementById('eventModal').classList.remove('open');
+  editingId = null;
+}
+document.getElementById('addEventBtn').addEventListener('click', () => openEventModal(null));
+document.getElementById('evCancelBtn').addEventListener('click', closeEventModal);
+document.getElementById('evSaveBtn').addEventListener('click', () => {
+  const title = document.getElementById('evTitle').value.trim();
+  const date = document.getElementById('evDate').value;
+  const categoryId = document.getElementById('evCategory').value;
+  const description = document.getElementById('evDescription').value.trim();
+  const url = document.getElementById('evUrl').value.trim();
+  if (!title || !date) { alert('Title and date are required.'); return; }
+  if (editingId) {
+    const ev = state.events.find(e => e.id === editingId);
+    ev.title = title; ev.date = date; ev.categoryId = categoryId;
+    ev.description = description; ev.url = url;
+    syncUpdateEvent(ev);
+  } else {
+    const newEv = { id: uid(), title, date, categoryId, description, url };
+    state.events.push(newEv);
+    syncAddEvent(newEv);
+  }
+  closeEventModal();
+  render();
+});
+document.getElementById('evDeleteBtn').addEventListener('click', () => {
+  if (!editingId) return;
+  if (!confirm('Delete this event?')) return;
+  const id = editingId;
+  state.events = state.events.filter(e => e.id !== id);
+  syncDeleteEvent(id);
+  closeEventModal();
+  render();
+});
+
+/* ============== CATEGORIES MODAL ============== */
+function openCatModal() {
+  renderCatList();
+  document.getElementById('catModal').classList.add('open');
+}
+function closeCatModal() {
+  document.getElementById('catModal').classList.remove('open');
+}
+function renderCatList() {
+  const list = document.getElementById('catList');
+  list.innerHTML = '';
+  state.categories.forEach(cat => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px';
+    row.innerHTML = `
+      <input type="color" value="${cat.color}" data-cat-color="${cat.id}" style="width:36px;height:30px;padding:2px;background:transparent;border:1px solid var(--line);border-radius:6px;cursor:pointer" />
+      <input type="text" value="${escapeHtml(cat.name)}" data-cat-name="${cat.id}" style="flex:1;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:6px 8px;border-radius:6px;font-size:13px;outline:none" />
+      <button class="btn danger" data-cat-del="${cat.id}" style="padding:6px 10px;font-size:12px">Delete</button>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('[data-cat-name]').forEach(el => {
+    el.addEventListener('change', () => {
+      const cat = state.categories.find(c => c.id === el.dataset.catName);
+      if (cat) { cat.name = el.value || cat.name; syncUpdateCategory(cat); render(); }
+    });
+  });
+  list.querySelectorAll('[data-cat-color]').forEach(el => {
+    el.addEventListener('change', () => {
+      const cat = state.categories.find(c => c.id === el.dataset.catColor);
+      if (cat) { cat.color = el.value; syncUpdateCategory(cat); render(); }
+    });
+  });
+  list.querySelectorAll('[data-cat-del]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.catDel;
+      const used = state.events.filter(e => e.categoryId === id).length;
+      let msg = 'Delete this category?';
+      if (used) msg += `\n\n${used} event(s) use this category and will be reassigned to "${state.categories.find(c=>c.id!==id)?.name || 'first category'}".`;
+      if (!confirm(msg)) return;
+      if (state.categories.length <= 1) { alert('You must keep at least one category.'); return; }
+      const remaining = state.categories.filter(c => c.id !== id);
+      const fallback = remaining[0].id;
+      state.events.forEach(e => { if (e.categoryId === id) e.categoryId = fallback; });
+      state.categories = remaining;
+      syncDeleteCategory(id, fallback);
+      renderCatList();
+      render();
+    });
+  });
+}
+document.getElementById('manageCatsBtn').addEventListener('click', openCatModal);
+document.getElementById('catCloseBtn').addEventListener('click', closeCatModal);
+document.getElementById('addCatBtn').addEventListener('click', () => {
+  const nameEl = document.getElementById('newCatName');
+  const colorEl = document.getElementById('newCatColor');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const newCat = {
+    id: uid(),
+    name,
+    color: colorEl.value
+  };
+  state.categories.push(newCat);
+  syncAddCategory(newCat);
+  nameEl.value = '';
+  renderCatList();
+  render();
+});
+
+/* ============== NAV ============== */
+document.getElementById('viewSeg').addEventListener('click', (e) => {
+  const v = e.target.dataset.view;
+  if (v) { view = v; render(); }
+});
+document.getElementById('prevBtn').addEventListener('click', () => {
+  if (view === 'year') cursor.setFullYear(cursor.getFullYear()-1);
+  else if (view === 'month') cursor.setMonth(cursor.getMonth()-1);
+  else cursor.setDate(cursor.getDate()-7);
+  render();
+});
+document.getElementById('nextBtn').addEventListener('click', () => {
+  if (view === 'year') cursor.setFullYear(cursor.getFullYear()+1);
+  else if (view === 'month') cursor.setMonth(cursor.getMonth()+1);
+  else cursor.setDate(cursor.getDate()+7);
+  render();
+});
+document.getElementById('todayBtn').addEventListener('click', () => {
+  cursor = new Date(); cursor.setHours(0,0,0,0);
+  render();
+});
+
+// click-out closes modals
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', (e) => {
+    if (e.target === bg) bg.classList.remove('open');
+  });
+});
+
+// Sync status / refresh button
+const syncBtn = document.getElementById('syncStatus');
+if (api.enabled()) {
+  syncBtn.style.display = '';
+  syncBtn.addEventListener('click', refreshFromCloud);
+}
+
+async function refreshFromCloud() {
+  if (!api.enabled()) return;
+  const cloud = await api.load();
+  if (cloud && Array.isArray(cloud.events) && Array.isArray(cloud.categories)) {
+    state = cloud;
+    saveState();
+    render();
+  }
+}
+
+async function init() {
+  render();
+  if (api.enabled()) {
+    await refreshFromCloud();
+    setInterval(refreshFromCloud, 60000); // refresh once a minute
+  }
+}
+init();
+</script>
+</body>
+</html>
