@@ -139,7 +139,7 @@
   }
   .day:hover { border-color: #3a4d77; }
   .day.other { opacity: .42; }
-  .day.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .day.past { background: #0f1422; } .day.today {   background: rgba(250, 204, 21, 0.12);   border-color: #fde68a;   box-shadow: 0 0 0 1px #fde68a inset; }
   .day-head { display: flex; align-items: center; justify-content: space-between; }
   .day-num { font-weight: 600; font-size: 13px; }
   .day-add {
@@ -388,7 +388,7 @@
     min-height: 380px;
     display: flex; flex-direction: column; gap: 8px;
   }
-  .week-day.today { border-color: var(--accent); }
+  .week-day.past { background: #0f1422; } .week-day.today {   background: rgba(250, 204, 21, 0.12);   border-color: #fde68a; }
   .wd-head { display: flex; flex-direction: column; gap: 2px; }
   .wd-name { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
   .wd-num { font-size: 22px; font-weight: 700; }
@@ -782,8 +782,9 @@ function renderMonth() {
     const d = new Date(gridStart); d.setDate(gridStart.getDate()+i);
     const inMonth = d.getMonth() === month;
     const isToday = sameDay(d, today);
+    const isPast = d < today;
     const evs = eventsOn(d);
-    html += `<div class="day ${inMonth?'':'other'} ${isToday?'today':''}" data-date="${fmtDate(d)}">
+    html += `<div class="day ${inMonth?'':'other'} ${isToday?'today':''} ${isPast?'past':''}" data-date="${fmtDate(d)}">
       <div class="day-head">
         <span class="day-num">${d.getDate()}</span>
         <button class="day-add" title="Add event" data-add="${fmtDate(d)}">+</button>
@@ -849,8 +850,9 @@ function renderWeek() {
   for (let i = 0; i < 7; i++) {
     const d = new Date(start); d.setDate(start.getDate()+i);
     const isToday = sameDay(d, today);
+    const isPast = d < today;
     const evs = eventsOn(d);
-    html += `<div class="week-day ${isToday?'today':''}" data-date="${fmtDate(d)}">
+    html += `<div class="week-day ${isToday?'today':''} ${isPast?'past':''}" data-date="${fmtDate(d)}">
       <div class="wd-head">
         <span class="wd-name">${DOWS_FULL[d.getDay()]}</span>
         <span class="wd-num">${d.getDate()}</span>
