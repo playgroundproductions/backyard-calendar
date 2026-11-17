@@ -15,8 +15,11 @@ Sheet's own **File → Version history** goes back edit by edit.
 
 ### Setup (once, in the Vercel project)
 
-1. **Storage → Create → Blob** (choose **private** access if asked) and connect it to this
-   project. That adds `BLOB_READ_WRITE_TOKEN` to the env vars.
+1. **Storage → Create Database → Blob**, with **Private** access, connected to this project
+   (store `backyard-calendar-backups`). That adds `BLOB_STORE_ID`, and the function signs in
+   with Vercel's short-lived OIDC token, so no read-write token is needed. Only if the log
+   shows `No blob credentials found` (OIDC turned off for the project): add a read-write
+   token to the connection, which the function then uses instead.
 2. **Settings → Environment Variables**: add `CRON_SECRET` (Production) with a random value,
    e.g. from `openssl rand -hex 32`. Vercel Cron sends it on every call; without it the
    function refuses to run.
