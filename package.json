@@ -1,0 +1,9 @@
+{
+  "name": "backyard-calendar",
+  "private": true,
+  "type": "module",
+  "description": "Backyard Sports content calendar: a static page (index.html) plus the daily backup function (api/backup.js)",
+  "dependencies": {
+    "@vercel/blob": "2.8.2"
+  }
+}
