@@ -114,6 +114,27 @@
   }
   .chip .edit:hover { color: var(--accent-2); }
 
+  .status-filter {
+    margin-top: 10px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  }
+  .status-filter .sf-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--muted); margin-right: 2px;
+  }
+  .status-filter .chip { cursor: pointer; font-family: inherit; }
+  .status-filter .chip:hover { border-color: #3a4d77; }
+  .status-filter .chip[aria-pressed="false"] {
+    opacity: .45; text-decoration: line-through; background: transparent;
+  }
+  .status-filter .chip .count { color: var(--muted); }
+  .status-filter .sf-reset {
+    background: none; border: 0; padding: 4px 6px; cursor: pointer;
+    font: inherit; font-size: 12px; color: var(--accent-2);
+  }
+  .status-filter .sf-reset:hover { text-decoration: underline; }
+  .status-filter .sf-hidden { font-size: 12px; color: var(--muted); }
+
   main { padding: 18px 28px 60px; }
 
   .month-grid {
@@ -531,6 +552,7 @@
     <div class="title" id="periodTitle">—</div>
   </div>
   <div class="rubric" id="rubric"></div>
+  <div class="status-filter" id="statusFilter" role="group" aria-label="Filter by status"></div>
 </header>
 
 <main id="calendarRoot"></main>
@@ -745,15 +767,79 @@ function getCategory(id) {
   return state.categories.find(c => c.id === id) || state.categories[0];
 }
 
+/* ============== STATUS FILTER ==============
+   Only hides events on screen: nothing is sent to the sheet. The choice is saved per
+   browser, as the statuses that are hidden, so a status added later shows by default. */
+const STATUS_FILTER_KEY = 'bys-cal-status-filter-v1';
+const NO_STATUS = '';
+let hiddenStatuses = loadHiddenStatuses();
+
+function loadHiddenStatuses() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STATUS_FILTER_KEY));
+    if (Array.isArray(raw)) return new Set(raw);
+  } catch(e) {}
+  return new Set();
+}
+function saveHiddenStatuses() {
+  try { localStorage.setItem(STATUS_FILTER_KEY, JSON.stringify([...hiddenStatuses])); } catch(e) {}
+}
+/** Events with a status the calendar doesn't know count as "No status" */
+function statusKey(e) {
+  return STATUSES.some(s => s.value === e.status) ? e.status : NO_STATUS;
+}
+function isVisible(e) {
+  return !hiddenStatuses.has(statusKey(e));
+}
+
 function eventsOn(date) {
   const ds = fmtDate(date);
   return state.events
-    .filter(e => e.date === ds)
+    .filter(e => e.date === ds && isVisible(e))
     .sort((a,b) => a.title.localeCompare(b.title));
+}
+
+function renderStatusFilter() {
+  const el = document.getElementById('statusFilter');
+  const counts = {};
+  state.events.forEach(e => {
+    const k = statusKey(e);
+    counts[k] = (counts[k] || 0) + 1;
+  });
+  const options = [
+    ...STATUSES.map(s => ({ value: s.value, label: `${s.emoji} ${s.value}` })),
+    { value: NO_STATUS, label: 'No status' },
+  ];
+  const hiddenCount = state.events.filter(e => !isVisible(e)).length;
+  el.innerHTML = `<span class="sf-label">Status</span>` + options.map(o => `
+    <button type="button" class="chip" data-status-filter="${escapeHtml(o.value)}"
+      aria-pressed="${!hiddenStatuses.has(o.value)}"
+      title="${hiddenStatuses.has(o.value) ? 'Show' : 'Hide'} ${escapeHtml(o.label)}">
+      <span>${escapeHtml(o.label)}</span>
+      <span class="count">${counts[o.value] || 0}</span>
+    </button>`).join('') +
+    (hiddenStatuses.size ? `
+      <span class="sf-hidden">${hiddenCount} hidden</span>
+      <button type="button" class="sf-reset" id="statusFilterReset">Show all</button>` : '');
+  el.querySelectorAll('[data-status-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.statusFilter;
+      if (hiddenStatuses.has(v)) hiddenStatuses.delete(v); else hiddenStatuses.add(v);
+      saveHiddenStatuses();
+      render();
+    });
+  });
+  const reset = document.getElementById('statusFilterReset');
+  if (reset) reset.addEventListener('click', () => {
+    hiddenStatuses.clear();
+    saveHiddenStatuses();
+    render();
+  });
 }
 
 function render() {
   renderRubric();
+  renderStatusFilter();
   renderHeader();
   if (view === 'year') renderYear();
   else if (view === 'week') renderWeek();
